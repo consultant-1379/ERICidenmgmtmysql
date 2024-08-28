@@ -1,0 +1,8 @@
+#hardening settings begin
+safe-user-create
+secure-auth
+skip-symbolic-links
+secure-file-priv=
+local-infile=0
+skip-grant-tables
+#hardening settings end

@@ -1,0 +1,81 @@
+    <!-- This is the setup file for the ericsson NEXUS repository --> 
+    <!-- https://arm1s11-eiffel004.eiffel.gic.ericsson.se:8443/nexus/index.html#welcome -->
+
+
+<settings>
+    <!-- This is from http://books.sonatype.com/nexus-book/reference/maven-sect-single-group.html  -->
+    <mirrors>
+        <mirror>
+            <id>nexus-mirror</id>
+            <url>https://arm1s11-eiffel004.eiffel.gic.ericsson.se:8443/nexus/content/groups/public/</url>
+            <mirrorOf>central</mirrorOf>
+        </mirror>
+        <mirror>
+            <id>ossrc-mirror</id>
+            <url>http://eselivm2v214l.lmera.ericsson.se:8081/nexus/content/groups/ericsson/</url>
+            <mirrorOf>ossrc</mirrorOf>
+        </mirror>
+        <mirror>
+            <id>prototype-mirror</id>
+            <url>https://arm1s11-eiffel004.eiffel.gic.ericsson.se:8443/nexus/content/repositories/prototype</url>
+            <mirrorOf>prototype</mirrorOf>
+        </mirror>
+    </mirrors>
+
+    <profiles>
+        <profile>
+            <id>nexus-profile</id>
+            <repositories>
+	       <repository>
+	           <id>central</id>
+	           <url>http://central</url>
+	           <releases><enabled>true</enabled></releases>
+	           <snapshots><enabled>true</enabled></snapshots>
+	       </repository>
+	       <repository>
+ 	           <id>ossrc</id>
+	           <url>http://ossrc</url>
+	           <releases><enabled>true</enabled></releases>
+	           <snapshots><enabled>true</enabled></snapshots>
+	       </repository>
+            </repositories>
+
+            <pluginRepositories>
+	       <pluginRepository>
+	           <id>central</id>
+	           <url>http://central</url>
+	           <releases><enabled>true</enabled></releases>
+	           <snapshots><enabled>true</enabled></snapshots>
+	       </pluginRepository>
+            </pluginRepositories>
+        </profile>
+
+        <profile>
+            <id>prototype-profile</id>
+            <repositories>
+	       <repository>
+	           <id>prototype</id>
+	           <url>http://prototype</url>
+	           <releases><enabled>true</enabled></releases>
+	           <snapshots><enabled>true</enabled></snapshots>
+	       </repository>
+            </repositories>
+            <pluginRepositories>
+	       <pluginRepository>
+	           <id>prototype</id>
+	           <url>http://prototype</url>
+                   <releases><enabled>true</enabled></releases>
+	           <snapshots><enabled>true</enabled></snapshots>
+	       </pluginRepository>
+            </pluginRepositories>
+        </profile>
+    </profiles>
+
+    <activeProfiles>
+      <activeProfile>nexus-profile</activeProfile> 
+
+      <!-- Activate the Prototype profile if you wish to access objects in the nexus prototype repo -->
+      <activeProfile>prototype-profile</activeProfile> 
+    </activeProfiles>
+</settings>
+

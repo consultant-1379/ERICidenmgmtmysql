@@ -1,0 +1,128 @@
+#!/bin/bash
+###############################################################################
+#
+#  Simple monitor script called by VCS to monitor service health
+#  This script emulates the  status function but allows us the scope to make it more
+#  extensive in the future
+#
+#  ATTENTION!
+#  As of today, there is the same variable used for password for root and for
+#  openidm user named idm_mysql_admin_password.
+#  In case of  Access denied for user 'openidm'@'localhost' error, please check
+#  openidm install script as well as global.properties file, what is the actual
+#  variable containing password for openidm user
+################################################################################
+
+SERVICE=/etc/init.d/mysql
+ACTION_STATUS=status
+MYSQL_HOME=/opt/mysql
+MYSQL_BIN_DIR=$MYSQL_HOME/bin
+MYSQLADMIN=$MYSQL_BIN_DIR/mysqladmin
+TMP_DIR=/tmp
+IDMMYSQL_PASSKEY=/ericsson/tor/data/idenmgmt/idmmysql_passkey
+GLOBAL_PROPERTY_FILE=/ericsson/tor/data/global.properties
+OPENSSL=/usr/bin/openssl
+QUERY="use information_schema; select count(table_name) from tables;"
+MYSQL=$MYSQL_BIN_DIR/mysql
+
+decipher()
+{
+
+    if [ ! -e "$GLOBAL_PROPERTY_FILE" ]; then
+         echo "ERROR: $GLOBAL_PROPERTY_FILE does not exist"
+         exit 1
+    fi
+    if [ ! -r "$GLOBAL_PROPERTY_FILE" ]; then
+         echo "ERROR: Cannot read $GLOBAL_PROPERTY_FILE"
+         exit 1
+    fi
+
+	if [ -r "${IDMMYSQL_PASSKEY}" ]; then
+
+	   idm_mysql_admin_password=`grep "idm_mysql_admin_password=" ${GLOBAL_PROPERTY_FILE} | sed "s/idm_mysql_admin_password=//"`
+
+	   if [ -z "${idm_mysql_admin_password}" ]; then
+			echo "ERROR: idm_mysql_admin_password is not set in ${GLOBAL_PROPERTY_FILE}"
+			return 1
+	   fi
+
+
+
+	   MYSQL_OPENIDM_PWD=`echo ${idm_mysql_admin_password} | ${OPENSSL} enc -a -d -aes-128-cbc -salt -kfile ${IDMMYSQL_PASSKEY}`
+
+	   if [ -z "${MYSQL_OPENIDM_PWD}" ]; then
+			echo "ERROR: Failed to decrypt idm_mysql_admin_password from ${GLOBAL_PROPERTY_FILE}"
+			return 1
+	   fi
+	else
+		echo "ERROR: ${IDMMYSQL_PASSKEY} not found or unable to read"
+		return 1
+	fi
+
+	if [ $? -eq 0 ] ; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+monitor()
+{
+"${SERVICE}" "${ACTION_STATUS}"
+RETCODE=$?
+
+if [ ${RETCODE} -eq 3 ] ; then
+#in case if MySQL is not running
+  return 7
+elif [ ${RETCODE} -ne 0 ] ; then
+#in case if
+# -MySQL is not running, but PID file exists - status exited with 1
+# -MySQL is not running, but lock file exists - status exited with 2
+# -MySQL is running but PID file could not be found - status exited with 4
+# -Multiple MySQL running but PID file could not be found - status exited with 1
+ return 1
+fi
+
+decipher
+
+  if [ $? -eq 0 ] ; then
+#if it was possible to desipher openidm password, mysql query can be performed
+#The query selects names of tables from infroration schema, and counts
+#the number of them.
+        count=$( ${MYSQL} -uopenidm -p${MYSQL_OPENIDM_PWD} -e "$QUERY")
+#if select returned phrase with count, means that no error ocurred
+        if [[ $count == *"count(table_name)"* ]]
+        then
+#the number of tables is cut
+        count=$(echo $count | sed 's/[^0-9]*//g')
+
+#If the number is greater than 0 means the mysql query works fine,
+#and that the schema is not empty
+                if [ $count -gt 0 ] ; then
+                        return 0
+                else
+                        echo "There are no tables in information_schema tables table"
+                        return 1
+                fi
+        else
+
+        echo "Error occurred while MySQL query performing"
+        return 1
+        fi
+else
+#if we are not able to decipher
+        return 1
+fi
+
+}
+
+#######################################
+#
+#  main
+#
+#######################################
+# monitor has been commented out as mysql is no more used as openidm internal repo:
+# monitor
+
+# exit $?
+exit 0
